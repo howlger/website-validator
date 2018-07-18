@@ -37,6 +37,7 @@ public class BrokenLinkIssue extends FileIssue {
     public String toString(Function<Path, String> pathToString) {
         final String common =   "["
                               + linkType.getIssue()
+                              + (targetAnchor.isPresent() ? " anchor" : "")
                               + "] In file '"
                               + pathToString.apply(getFile())
                               + "' <"
@@ -47,7 +48,7 @@ public class BrokenLinkIssue extends FileIssue {
                               + attrValue
                               + "\" points to the ";
         if (!targetAnchor.isPresent()) return common + "missing file '" + pathToString.apply(target) + "'.";
-        if (attrValue.startsWith("#")) return common + "missing anchor '" + targetAnchor + "'.";
+        if (attrValue.startsWith("#")) return common + "missing anchor '" + targetAnchor.get() + "'.";
         return   common
                + "file '"
                + pathToString.apply(target)
