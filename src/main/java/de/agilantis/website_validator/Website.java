@@ -67,6 +67,7 @@ public class Website implements Iterable<Path> {
         // other files
         Files.walk(dir)
              .filter(Files::isRegularFile)
+             .filter(path -> docZip == null || !path.equals(docZipPath))
              .forEach(file -> website.otherFiles.add(base.resolve(dir.relativize(file))));
 
         // known Infocenter images
