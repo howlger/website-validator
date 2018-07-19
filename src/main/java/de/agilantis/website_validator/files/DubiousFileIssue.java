@@ -12,9 +12,9 @@ package de.agilantis.website_validator.files;
 import java.nio.file.Path;
 import java.util.function.Function;
 
-import de.agilantis.website_validator.FileIssue;
+import de.agilantis.website_validator.Issue;
 
-public class DubiousFileIssue extends FileIssue {
+public class DubiousFileIssue extends Issue {
 
     private final String zipEntryName;
     private final DubiousFileType dubiousFileType;
@@ -29,18 +29,16 @@ public class DubiousFileIssue extends FileIssue {
         this.zipEntryName = zipEntryName;
     }
 
-    @Override
-    public String toString(Function<Path, String> pathToString) {
-        return "[Dubious file] "
-               + (zipEntryName == null
-                  ? dubiousFileType + " found: " + pathToString.apply(getFile())
-                  :   "ZIP file '"
-                    + pathToString.apply(getFile())
-                    + "' contains the "
-                    + dubiousFileType
-                    + " '"
-                    + zipEntryName
-                    + "'.");
-    }
+	@Override
+	public String getType() {
+		return "Dubious file";
+	}
+
+	@Override
+	public String getDescription(Function<Path, String> pathToString) {
+		return zipEntryName == null
+			   ? "Probably unwanted " + dubiousFileType
+			   : "ZIP contains the probably unwanted " + dubiousFileType + " '" + zipEntryName + "'";
+	}
 
 }

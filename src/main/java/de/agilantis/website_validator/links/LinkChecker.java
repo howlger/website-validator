@@ -32,6 +32,8 @@ public class LinkChecker extends CheckerAdapter {
 
     private final Map<Path, Set<String>> anchors = new HashMap<>();
     private final List<ExpectedAnchor> expectedAnchors = new ArrayList<>();
+    private int checkedLinks = 0;
+    private int skippedLinks = 0;
 
     @Override
     protected void visitHtmlFile(Path file, Document doc, Website webSite, List<Issue> issues) {
@@ -51,11 +53,15 @@ public class LinkChecker extends CheckerAdapter {
             for (Element elem : doc.select(linkType.getElementName() + "[" + linkType.getAttributeName() + "]")) {
 
                 final String attr = elem.attr(linkType.getAttributeName());
-                if (attr.contains(":")) continue;
+                if (attr.contains(":")) {
+                	skippedLinks++;
+                	continue;
+                }
 
                 // without anchor support
                 if (!linkType.supportAnchor()) {
                     final Path target = file.resolveSibling(attr).normalize();
+                    checkedLinks++;
                     if (!webSite.exists(target)) {
                         issues.add(new BrokenLinkIssue(linkType, file, attr, target));
                     }
@@ -72,6 +78,7 @@ public class LinkChecker extends CheckerAdapter {
                 final Path target = anchorStart == 0
                                     ? file
                                     : file.resolveSibling(fileHref).normalize();
+                checkedLinks++;
                 if (!webSite.exists(target)) {
                     issues.add(new BrokenLinkIssue(linkType, file, attr, target));
                     continue;
@@ -105,6 +112,12 @@ public class LinkChecker extends CheckerAdapter {
             }
         }
         return issues;
+    }
+
+    @Override
+    public String getStatistics() {
+    	// TODO Auto-generated method stub
+    	return checkedLinks + " links checked (" + skippedLinks + " links skipped)";
     }
 
     private static class ExpectedAnchor {

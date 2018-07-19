@@ -12,9 +12,9 @@ package de.agilantis.website_validator.files;
 import java.nio.file.Path;
 import java.util.function.Function;
 
-import de.agilantis.website_validator.FileIssue;
+import de.agilantis.website_validator.Issue;
 
-public class DuplicateZipEntryIssue extends FileIssue {
+public class DuplicateZipEntryIssue extends Issue {
 
     private final String zipEntryName;
 
@@ -23,12 +23,14 @@ public class DuplicateZipEntryIssue extends FileIssue {
         this.zipEntryName = zipEntryName;
     }
 
-    @Override
-    public String toString(Function<Path, String> pathToString) {
-        return   "[Duplicate ZIP entry] ZIP file '"
-               + pathToString.apply(getFile())
-               + "' contains duplacted entried for: "
-               + zipEntryName;
-    }
+	@Override
+	public String getType() {
+		return "Duplicate ZIP entry";
+	}
+
+	@Override
+	public String getDescription(Function<Path, String> pathToString) {
+		return "ZIP file contains contains duplicated entries for '" + zipEntryName + "'";
+	}
 
 }

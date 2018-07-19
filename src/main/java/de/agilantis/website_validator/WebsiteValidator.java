@@ -10,15 +10,12 @@
 package de.agilantis.website_validator;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
-import java.util.function.Function;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,20 +25,25 @@ import de.agilantis.website_validator.links.LinkChecker;
 
 public class WebsiteValidator {
 
+	public static final List<Class<? extends IChecker>> DEFAULT_CHECKERS =
+			Arrays.asList(LinkChecker.class, FileNameChecker.class);
+
     public static void main(String[] args) throws IOException {
         if (args.length < 1) {
             System.err.println("Specify the directory that should be validated.");
             return;
         }
         final Path dir = Paths.get(args[0]);
-        final Website webSite = Website.of(dir);
         System.out.println("Validating " + dir);
-        ValidationResult result = new WebsiteValidator().validate(webSite);
+        final Website website = Website.of(dir);
+        ValidationResult result = validate(website);
         List<Issue> issues = result.getIssues();
-        System.out.println(  result.getNumberOfHtmlFiles() + " HTML files validated, "
-                           + issues.size() + " issues found.");
+        System.out.println(  (issues.isEmpty() ? "no" : "" + issues.size())
+        		           + " issues found"
+        		           + (result.getStatistics().isEmpty() ? "" : " (" + result.getStatistics() + ")")
+        		           + (issues.isEmpty() ? "." : ":"));
         for (Issue issue : issues) {
-            System.err.println(issue.toString(webSite::pathToString));
+            System.err.println(issue.toString(website::pathToString));
         }
 
         // optional HTML report
@@ -61,66 +63,50 @@ public class WebsiteValidator {
             isHtmlReportBaseUrlArg = "-htmlreportbaseurl".equals(argument);
         }
         if (htmlReport != null) {
-            final String base =   htmlReportBaseUrl
-                                + (webSite.getSymbolicName() == null
-                                   ? ""
-                                   : "/topic/" + webSite.getSymbolicName() + "/");
-            final StringBuilder rows = new StringBuilder();
-            for (Issue issue : issues) {
-                final String row = issue.toString(path -> "[[[" + webSite.pathToString(path).replace('\\', '/') + "]]]")
-                                        .replace("&", "&amp;")
-                                        .replace("<", "&lt;");
-                final String td = row.replaceAll("\\[\\[\\[(.*?)\\]\\]\\]",
-                                                 htmlReportBaseUrl == null
-                                                 ? "$1"
-                                                 : "<a href=\"" + base + "$1\">$1</a>");
-                rows.append("<tr><td>" + td + "</td></tr>");
-            }
-            final String reportTemplate = asString(WebsiteValidator.class.getResourceAsStream("report.html"));
-            Files.write(Paths.get(htmlReport),
-                        reportTemplate.replace("<<ISSUES>>", rows)
-                                      .getBytes(StandardCharsets.UTF_8));
+        	HtmlReport.create(Paths.get(htmlReport), result, htmlReportBaseUrl, website);
         }
     }
 
-    private static String asString(InputStream inputStream) {
-        @SuppressWarnings("resource")
-        Scanner scanner = new Scanner(inputStream).useDelimiter("\\A");
-        return scanner.hasNext() ? scanner.next() : "";
+    public static ValidationResult validate(Website website) {
+    	return validate(website, checkersFromClasses(DEFAULT_CHECKERS));
     }
 
-    public ValidationResult validate(Website webSite) {
-        final IChecker[] validators = new IChecker[] {
-                new LinkChecker(),
-                new FileNameChecker(),
-        };
+    public static ValidationResult validate(Website website, List<IChecker> checkers) {
         final List<Issue> issues = new ArrayList<>();
         int numberOfHtmlFiles = 0;
-        for (Path file : webSite) {
+        int numberOfOtherFiles = 0;
+        for (Path file : website) {
             try {
                 Document doc = isHtml(file)
-                               ? Jsoup.parse(webSite.getContent(file),
+                               ? Jsoup.parse(website.getContent(file),
                                              StandardCharsets.UTF_8.name(),
                                              "")
                                : null;
-                if (doc != null) numberOfHtmlFiles++;
-                for (IChecker validator : validators) {
-                    validator.visitFile(file, doc, webSite, issues);
+                if (doc != null) {
+                	numberOfHtmlFiles++;
+                } else {
+                	numberOfOtherFiles++;
+                }
+                for (IChecker checker : checkers) {
+                    checker.visitFile(file, doc, website, issues);
                 }
             } catch (IOException | RuntimeException e) {
                 e.printStackTrace();
-                issues.add(new FileIssue(file) {
-                    @Override
-                    public String toString(Function<Path, String> pathToString) {
-                        return "[Exception] An exception occured while reading file '" + pathToString.apply(file) + "': " + e.getMessage();
-                    }
-                });
+                issues.add(new ExceptionIssue(file, e));
             }
         }
-        for (IChecker validator : validators) {
-            issues.addAll(validator.getRemainingIssuesAfterVisitingAllFiles(webSite));
+        for (IChecker checker : checkers) {
+            issues.addAll(checker.getRemainingIssuesAfterVisitingAllFiles(website));
         }
-        return new ValidationResult(issues, numberOfHtmlFiles);
+        String statistics =   numberOfHtmlFiles
+        		            + " HTML and "
+        		            + numberOfOtherFiles
+        		            + " other files validated";
+        for (IChecker checker : checkers) {
+        	if (checker.getStatistics().isEmpty()) continue;
+        	statistics += ", " + checker.getStatistics();
+        }
+        return new ValidationResult(issues, statistics);
     }
 
     private static boolean isHtml(Path path) {
@@ -134,6 +120,18 @@ public class WebsiteValidator {
         final String fileName = path.getFileName().toString();
         final int start = fileName.lastIndexOf('.');
         return start < 0 ? "" : fileName.substring(start + 1);
+    }
+
+    private static List<IChecker> checkersFromClasses(List<Class<? extends IChecker>> checkerClasses) {
+    	final List<IChecker> checkers = new ArrayList<>();
+    	for (Class<? extends IChecker> checkerClass : checkerClasses) {
+    		try {
+				checkers.add(checkerClass.newInstance());
+			} catch (InstantiationException | IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		}
+    	return checkers;
     }
 
 }

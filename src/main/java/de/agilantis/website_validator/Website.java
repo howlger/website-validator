@@ -30,13 +30,15 @@ public class Website implements Iterable<Path> {
     private final Set<Path> otherFiles = new HashSet<>();
     final ZipFile docZip;
     private final Path dir;
+    private final String title;
     private final String symbolicName;
     private final Path base; // "/web_site_to_validate" or "/<Bundle-SymbolicName>"
 
     /** Only for testing */
-    protected Website(ZipFile docZip, Path dir, String symbolicName, Path base) {
+    protected Website(ZipFile docZip, Path dir, String title, String symbolicName, Path base) {
         this.docZip = docZip;
         this.dir = dir;
+        this.title = title;
         this.symbolicName = symbolicName;
         this.base = base;
     }
@@ -51,8 +53,11 @@ public class Website implements Iterable<Path> {
         final ZipFile docZip = isEclipseHelpPlugin && Files.exists(docZipPath)
                                ? new ZipFile(docZipPath.toFile())
                                : null;
-
-        final Website website = new Website(docZip, dir, symbolicName, base);
+        final String version = computeVersion(dir);
+        final String title = symbolicName == null
+        		             ? dir.toString()
+        		             : symbolicName + (version == null || version.isEmpty() ? "" : " " + version);
+        final Website website = new Website(docZip, dir, title, symbolicName, base);
         // doc.zip
         if (docZip != null) {
             @SuppressWarnings("rawtypes")
@@ -105,14 +110,27 @@ public class Website implements Iterable<Path> {
         return symbolicName;
     }
 
+    public String getTitle() {
+    	return title;
+    }
+
     private static String computeSymbolicName(Path pluginDir) throws IOException {
-        final Path manifestPath = pluginDir.resolve("META-INF/MANIFEST.MF");
-        if (!Files.exists(manifestPath)) return null;
-        final Manifest manifest = new Manifest(Files.newInputStream(manifestPath));
+        final Manifest manifest = manifest(pluginDir);
+        if (manifest == null) return null;
         final String symbolicName = manifest.getMainAttributes().getValue("Bundle-SymbolicName");
         if (symbolicName == null) return null;
         final int end = symbolicName.indexOf(';');
         return end < 0 ? symbolicName : symbolicName.substring(0, end);
+    }
+
+    private static String computeVersion(Path pluginDir) throws IOException {
+    	final Manifest manifest = manifest(pluginDir);
+    	return manifest == null ? null : manifest.getMainAttributes().getValue("Bundle-Version");
+    }
+
+    private static Manifest manifest(Path pluginDir) throws IOException {
+    	final Path manifestPath = pluginDir.resolve("META-INF/MANIFEST.MF");
+    	return !Files.exists(manifestPath) ? null : new Manifest(Files.newInputStream(manifestPath));
     }
 
 }

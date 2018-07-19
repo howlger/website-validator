@@ -13,9 +13,9 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Function;
 
-import de.agilantis.website_validator.FileIssue;
+import de.agilantis.website_validator.Issue;
 
-public class BrokenLinkIssue extends FileIssue {
+public class BrokenLinkIssue extends Issue {
 
     private final LinkType linkType;
     private final String attrValue;
@@ -34,27 +34,28 @@ public class BrokenLinkIssue extends FileIssue {
         this.targetAnchor = targetAnchor;
     }
 
-    public String toString(Function<Path, String> pathToString) {
-        final String common =   "["
-                              + linkType.getIssue()
-                              + (targetAnchor.isPresent() ? " anchor" : "")
-                              + "] In file '"
-                              + pathToString.apply(getFile())
-                              + "' <"
+	@Override
+	public String getType() {
+		return linkType.getIssue() + (targetAnchor.isPresent() ? " anchor" : "");
+	}
+
+	@Override
+	public String getDescription(Function<Path, String> pathToString) {
+        final String common =   "'<"
                               + linkType.getElementName()
                               + " ... "
                               + linkType.getAttributeName()
                               + "=\""
                               + attrValue
-                              + "\" points to the ";
-        if (!targetAnchor.isPresent()) return common + "missing file '" + pathToString.apply(target) + "'.";
-        if (attrValue.startsWith("#")) return common + "missing anchor '" + targetAnchor.get() + "'.";
+                              + "\" ...' points to the ";
+        if (!targetAnchor.isPresent()) return common + "missing file '" + pathToString.apply(target) + "'";
+        if (attrValue.startsWith("#")) return common + "missing anchor '" + targetAnchor.get() + "'";
         return   common
-               + "file '"
-               + pathToString.apply(target)
-               + "' which exists but does not contain the anchor '"
-               + targetAnchor.get()
-               + "'.";
-    }
+        	   + "file '"
+        	   + pathToString.apply(target)
+        	   + "' which exists but does not contain the anchor '"
+        	   + targetAnchor.get()
+        	   + "'";
+	}
 
 }

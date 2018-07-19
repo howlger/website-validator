@@ -9,24 +9,39 @@
 **********************************************************************/
 package de.agilantis.website_validator;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class ValidationResult {
 
     private final List<Issue> issues;
-    private final int numberOfHtmlFiles;
+    private final String statistics;
 
-    public ValidationResult(List<Issue> issues, int numberOfHtmlFiles) {
+    public ValidationResult(List<Issue> issues, String statistics) {
         this.issues = issues;
-        this.numberOfHtmlFiles = numberOfHtmlFiles;
+        this.issues.sort(new ByLocation());
+        this.statistics = statistics;
     }
 
     public List<Issue> getIssues() {
         return issues;
     }
 
-    public int getNumberOfHtmlFiles() {
-        return numberOfHtmlFiles;
+    public String getStatistics() {
+		return statistics;
+	}
+
+    private static class ByLocation implements Comparator<Issue> {
+
+		@Override
+		public int compare(Issue issue1, Issue issue2) {
+			final String location1 = issue1.getLocation().toString();
+			final String location2 = issue2.getLocation().toString();
+			if (location1 == null) return location2 == null ? 0 : -1;
+			if (location2 == null) return 1;
+			return location1.compareTo(location2);
+		}
+
     }
 
 }

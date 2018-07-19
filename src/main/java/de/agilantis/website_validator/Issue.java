@@ -14,11 +14,29 @@ import java.util.function.Function;
 
 public abstract class Issue {
 
-    @Override
-    public String toString() {
-        return toString(path -> path.toString());
-    }
+	protected final Path location;
 
-    public abstract String toString(Function<Path, String> pathToString);
+	public Issue(Path location) {
+		this.location = location;
+	}
+
+	@Override
+	public String toString() {
+		return toString(path -> path.toString());
+	}
+
+	public String toString(Function<Path, String> pathToString) {
+		return   "[" + getType() + "] "
+		       + (location == null ? "" : "'" + pathToString.apply(location) + "': ")
+		       + getDescription(pathToString);
+	}
+
+	public Path getLocation() {
+		return location;
+	}
+
+	public abstract String getType();
+
+	public abstract String getDescription(Function<Path, String> pathToString);
 
 }

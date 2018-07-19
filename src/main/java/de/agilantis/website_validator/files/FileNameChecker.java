@@ -14,19 +14,22 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import de.agilantis.website_validator.CheckerAdapter;
-import de.agilantis.website_validator.FileIssue;
+import de.agilantis.website_validator.ExceptionIssue;
 import de.agilantis.website_validator.Issue;
 import de.agilantis.website_validator.Website;
 
 public class FileNameChecker extends CheckerAdapter {
 
+	private int checkedFileNames = 0;
+	private int readZipFiles = 0;
+
     @Override
     protected void visitNonHtmlFile(Path file, Website website, List<Issue> issues) {
+    	checkedFileNames++;
         final String lowerCaseFileName = file.getFileName().toString().toLowerCase();
         for (DubiousFileType dubiousFileType : DubiousFileType.values()) {
             if (dubiousFileType.checkFile(lowerCaseFileName)) {
@@ -36,6 +39,8 @@ public class FileNameChecker extends CheckerAdapter {
         if (!lowerCaseFileName.endsWith(".zip")) return;
         try {
             final ZipInputStream zip = new ZipInputStream(website.getContent(file));
+            checkedFileNames--;
+            readZipFiles++;
             final Set<String> entryNames = new HashSet<>();
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
@@ -44,6 +49,7 @@ public class FileNameChecker extends CheckerAdapter {
                 final String entryName = entry.getName();
                 final int fileNameStart = entryName.lastIndexOf('/');
                 final String lowerCase = (fileNameStart < 0 ? entryName : entryName.substring(fileNameStart + 1)).toLowerCase();
+                checkedFileNames++;
                 for (DubiousFileType dubiousFileType : DubiousFileType.values()) {
                     if (dubiousFileType.checkFile(lowerCase)) {
                         issues.add(new DubiousFileIssue(dubiousFileType, file, entryName));
@@ -57,16 +63,13 @@ public class FileNameChecker extends CheckerAdapter {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            issues.add(new FileIssue(file) {
-                @Override
-                public String toString(Function<Path, String> pathToString) {
-                    return   "[Exception] An exception occured while reading ZIP file '"
-                           + pathToString.apply(file)
-                           + "':"
-                           + e.getMessage();
-                }
-            });
+            issues.add(new ExceptionIssue(file, e));
         }
+    }
+
+    @Override
+    public String getStatistics() {
+    	return checkedFileNames + " file names checked (including files in " + readZipFiles + " ZIP files)";
     }
 
 }

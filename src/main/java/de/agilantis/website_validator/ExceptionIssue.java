@@ -10,17 +10,25 @@
 package de.agilantis.website_validator;
 
 import java.nio.file.Path;
+import java.util.function.Function;
 
-public abstract class FileIssue extends Issue {
+public class ExceptionIssue extends Issue {
 
-    private final Path file;
+	private final String message;
 
-    public FileIssue(Path file) {
-        this.file = file;
-    }
+	public ExceptionIssue(Path location, Exception e) {
+		super(location);
+		message = e.getMessage();
+	}
 
-    public Path getFile() {
-        return file;
-    }
+	@Override
+	public String getType() {
+		return "Unexpected exception";
+	}
+
+	@Override
+	public String getDescription(Function<Path, String> pathToString) {
+		return message;
+	}
 
 }

@@ -20,4 +20,8 @@ public interface IChecker {
 
     List<Issue> getRemainingIssuesAfterVisitingAllFiles(Website website);
 
+    default String getStatistics() {
+    	return "";
+    }
+
 }

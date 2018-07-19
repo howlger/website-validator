@@ -22,7 +22,7 @@ import java.util.Map;
 
 import de.agilantis.website_validator.Website;
 
-public class DummyWebSite extends Website {
+public class DummyWebsite extends Website {
 
     private static final String HTML_SKELETON =
             "<html><head><title>${title}</title></head>\r\n"
@@ -30,16 +30,16 @@ public class DummyWebSite extends Website {
 
     private final Map<Path, String> files = new HashMap<>();
 
-    private DummyWebSite() {
-        super(null, null, null, null);
+    private DummyWebsite() {
+        super(null, null, null, null, null);
     }
 
-    public static DummyWebSite create(int startNr, int endNr) {
+    public static DummyWebsite create(int startNr, int endNr) {
         return create(startNr, endNr, 1);
     }
 
-    public static DummyWebSite create(int startNr, int endNr, int nrIncrement) {
-        DummyWebSite dummy = new DummyWebSite();
+    public static DummyWebsite create(int startNr, int endNr, int nrIncrement) {
+        DummyWebsite dummy = new DummyWebsite();
         for (int i = startNr; i < endNr; i+=nrIncrement) {
             dummy.put(i, "Sample " + i);
         }
