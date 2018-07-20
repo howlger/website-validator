@@ -67,7 +67,7 @@ public class BrokenLinkIssue extends Issue {
         if (!targetAnchor.isPresent()) return common + "points to the missing file '" + pathToString.apply(target) + "'";
         if (attrValue.startsWith("#")) return common + "points to the missing anchor '" + targetAnchor.get() + "'";
         return   common
-        	   + "file '"
+        	   + "points to the file '"
         	   + pathToString.apply(target)
         	   + "' which exists but does not contain the anchor '"
         	   + targetAnchor.get()
