@@ -72,7 +72,7 @@ public class WebsiteValidator {
     }
 
     public static ValidationResult validate(Website website, List<IChecker> checkers) {
-        final List<Issue> issues = new ArrayList<>();
+        final List<Issue> issues = new ArrayList<>(website.getIssues());
         int numberOfHtmlFiles = 0;
         int numberOfOtherFiles = 0;
         for (Path file : website) {

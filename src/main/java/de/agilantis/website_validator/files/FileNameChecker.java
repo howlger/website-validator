@@ -18,6 +18,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import de.agilantis.website_validator.CheckerAdapter;
+import de.agilantis.website_validator.DuplicateZipEntryIssue;
 import de.agilantis.website_validator.ExceptionIssue;
 import de.agilantis.website_validator.Issue;
 import de.agilantis.website_validator.Website;
@@ -44,9 +45,17 @@ public class FileNameChecker extends CheckerAdapter {
             final Set<String> entryNames = new HashSet<>();
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
+            	final String entryName = entry.getName();
+
+                // duplicate entry?
+                if (!entryNames.add(entry.getName())) {
+                	issues.add(new DuplicateZipEntryIssue(file, entryName));
+                }
+
+                // directory?
+                if (entry.isDirectory()) continue;
 
                 // check file names
-                final String entryName = entry.getName();
                 final int fileNameStart = entryName.lastIndexOf('/');
                 final String lowerCase = (fileNameStart < 0 ? entryName : entryName.substring(fileNameStart + 1)).toLowerCase();
                 checkedFileNames++;
@@ -55,10 +64,6 @@ public class FileNameChecker extends CheckerAdapter {
                         issues.add(new DubiousFileIssue(dubiousFileType, file, entryName));
                     }
                 }
-
-                // duplicate entries
-                if (entryNames.add(entry.getName())) continue;
-                issues.add(new DuplicateZipEntryIssue(file, entryName));
 
             }
         } catch (IOException e) {

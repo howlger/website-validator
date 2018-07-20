@@ -14,10 +14,12 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.Manifest;
@@ -28,11 +30,12 @@ public class Website implements Iterable<Path> {
 
     private final Map<Path, ZipEntry> docZipFiles = new HashMap<>();
     private final Set<Path> otherFiles = new HashSet<>();
-    final ZipFile docZip;
+    private final ZipFile docZip;
     private final Path dir;
     private final String title;
     private final String symbolicName;
     private final Path base; // "/web_site_to_validate" or "/<Bundle-SymbolicName>"
+    private final List<Issue> issues = new ArrayList<>();
 
     /** Only for testing */
     protected Website(ZipFile docZip, Path dir, String title, String symbolicName, Path base) {
@@ -62,8 +65,15 @@ public class Website implements Iterable<Path> {
         if (docZip != null) {
             @SuppressWarnings("rawtypes")
             final Enumeration zipEntries = docZip.entries();
+            final Set<String> entryNames = new HashSet<>();
             while (zipEntries.hasMoreElements()) {
                 final ZipEntry entry = (ZipEntry) zipEntries.nextElement();
+
+                // duplicate entry?
+                if (!entryNames.add(entry.getName())) {
+                	website.issues.add(new DuplicateZipEntryIssue(null, entry.getName()));
+                }
+
                 if (entry.isDirectory()) continue;
                 website.docZipFiles.put(base.resolve(entry.getName()), entry);
             }
@@ -112,6 +122,10 @@ public class Website implements Iterable<Path> {
 
     public String getTitle() {
     	return title;
+    }
+
+    public List<Issue> getIssues() {
+    	return issues;
     }
 
     private static String computeSymbolicName(Path pluginDir) throws IOException {

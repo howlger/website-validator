@@ -9,6 +9,7 @@
 **********************************************************************/
 package de.agilantis.website_validator;
 
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 
@@ -35,11 +36,11 @@ public class ValidationResult {
 
 		@Override
 		public int compare(Issue issue1, Issue issue2) {
-			final String location1 = issue1.getLocation().toString();
-			final String location2 = issue2.getLocation().toString();
+			final Path location1 = issue1.getLocation();
+			final Path location2 = issue2.getLocation();
 			if (location1 == null) return location2 == null ? 0 : -1;
 			if (location2 == null) return 1;
-			return location1.compareTo(location2);
+			return location1.toString().compareTo(location2.toString());
 		}
 
     }

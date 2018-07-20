@@ -7,12 +7,10 @@
 *
 * SPDX-License-Identifier: EPL-2.0
 **********************************************************************/
-package de.agilantis.website_validator.files;
+package de.agilantis.website_validator;
 
 import java.nio.file.Path;
 import java.util.function.Function;
-
-import de.agilantis.website_validator.Issue;
 
 public class DuplicateZipEntryIssue extends Issue {
 
@@ -25,12 +23,13 @@ public class DuplicateZipEntryIssue extends Issue {
 
 	@Override
 	public String getType() {
-		return "Duplicate ZIP entry";
+		return "Duplicate ZIP entries";
 	}
 
 	@Override
 	public String getDescription(Function<Path, String> pathToString) {
-		return "ZIP file contains contains duplicated entries for '" + zipEntryName + "'";
+		return   (location == null ? "'doc.zip'" : "ZIP file")
+			   + " contains multiple entries for '" + zipEntryName + "'";
 	}
 
 }
