@@ -21,17 +21,32 @@ public class BrokenLinkIssue extends Issue {
     private final String attrValue;
     private final Path target;
     private final Optional<String> targetAnchor;
+    private final Optional<String> protocol;
 
     public BrokenLinkIssue(LinkType linkType, Path file, String attrValue, Path target) {
         this(linkType, file, attrValue, target, Optional.empty());
     }
 
     public BrokenLinkIssue(LinkType linkType, Path file, String attrValue, Path target, Optional<String> targetAnchor) {
+    	this(linkType, file, attrValue, target, targetAnchor, Optional.empty());
+    }
+
+    public BrokenLinkIssue(LinkType linkType, Path file, String attrValue, String protocol) {
+    	this(linkType, file, attrValue, null, Optional.empty(), Optional.of(protocol));
+    }
+
+    private BrokenLinkIssue(LinkType linkType,
+    		               Path file,
+    		               String attrValue,
+    		               Path target,
+    		               Optional<String> targetAnchor,
+    		               Optional<String> protocol) {
         super(file);
         this.linkType = linkType;
         this.attrValue = attrValue;
         this.target = target;
         this.targetAnchor = targetAnchor;
+        this.protocol = protocol;
     }
 
 	@Override
@@ -47,9 +62,10 @@ public class BrokenLinkIssue extends Issue {
                               + linkType.getAttributeName()
                               + "=\""
                               + attrValue
-                              + "\" ...' points to the ";
-        if (!targetAnchor.isPresent()) return common + "missing file '" + pathToString.apply(target) + "'";
-        if (attrValue.startsWith("#")) return common + "missing anchor '" + targetAnchor.get() + "'";
+                              + "\" ...' ";
+        if (protocol.isPresent()) return "In " + common + "the protocol '" + protocol.get() + "' is not allowed or not recommended";
+        if (!targetAnchor.isPresent()) return common + "points to the missing file '" + pathToString.apply(target) + "'";
+        if (attrValue.startsWith("#")) return common + "points to the missing anchor '" + targetAnchor.get() + "'";
         return   common
         	   + "file '"
         	   + pathToString.apply(target)

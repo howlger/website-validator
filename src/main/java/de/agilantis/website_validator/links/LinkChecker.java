@@ -51,15 +51,32 @@ public class LinkChecker extends CheckerAdapter {
         // check links
         for (LinkType linkType : LinkType.values()) {
             for (Element elem : doc.select(linkType.getElementName() + "[" + linkType.getAttributeName() + "]")) {
-
                 final String attr = elem.attr(linkType.getAttributeName());
+
+                // javascript:...
+                if (attr.startsWith("javascript:")) {
+                	if (!linkType.allowsJavascript()) {
+                		issues.add(new BrokenLinkIssue(linkType, file, attr, "javascript"));
+                	}
+                	continue;
+                }
+
+                // data:...
+                if (attr.startsWith("data:")) {
+                	if (!linkType.supportsData()) {
+                		issues.add(new BrokenLinkIssue(linkType, file, attr, "data"));
+                	}
+                	continue;
+                }
+
+                // other protocols
                 if (attr.contains(":")) {
                 	skippedLinks++;
                 	continue;
                 }
 
                 // without anchor support
-                if (!linkType.supportAnchor()) {
+                if (!linkType.supportsAnchors()) {
                     final Path target = file.resolveSibling(attr).normalize();
                     checkedLinks++;
                     if (!webSite.exists(target)) {
