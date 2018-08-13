@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title><<TITLE>></title>
-  <meta name="author" content="Website Validator">
+  <meta name="author" content="Website Validator (https://github.com/howlger/website-validator)">
   <<BASE>>
   <style>
 body {
@@ -170,12 +170,14 @@ function init() {
                 if (children3[l].tagName == 'TD') {
                   columnNr++;
                   if (columnNumber == columnNr) {
-                    var value = trim(children3[l].innerText || children3[l].textContent);
-                    for (var m = 0; m < columnValues.length; m++) {
-                      if (value == columnValues[m]) break tds;
+                    var value = trim(children3[l].textContent || children3[l].innerText);
+                    if (value!='') {
+                      for (var m = 0; m < columnValues.length; m++) {
+                        if (value == columnValues[m]) break tds;
+                      }
+                      columnValues.push(value);
+                      break;
                     }
-                    columnValues.push(value);
-                    break;
                   }
                 }
               }
@@ -279,7 +281,7 @@ function init() {
 }
 function trim(s) { return s.replace(/^\s+|\s+$/gm,'') }
 function norm(s) { return trim(s.toLowerCase()) }
-function plainText(elem) { return elem.innerText || elem.textContent }
+function plainText(elem) { return elem.textContent || elem.innerText }
 function addEvent(elem, evnt, func) {
   if (elem.addEventListener)  // W3C
     elem.addEventListener(evnt, func, false);
@@ -296,16 +298,16 @@ function newElem(tag, classes) {
 function newFilter(elem) {
   return function(s) {
     if (elem.className == 'off') return true;
-      return elem.tagName == 'SELECT'
-             ? norm(s) == norm(elem.value)
-             : s.toLowerCase().indexOf(elem.value.toLowerCase()) >= 0;
+    return elem.tagName == 'SELECT'
+           ? norm(s) == norm(elem.value)
+           : s.toLowerCase().indexOf(elem.value.toLowerCase()) >= 0;
   }
 }
 function newFilterField(tag, func, options) {
   var elem = newElem(tag, 'off');
   if (tag.toLowerCase() == 'select') {
     var o = newElem('option');
-    o.value = 'Filter';
+    o.value = '';
     elem.appendChild(o);
     for (var i = 0; i < options.length; i++) {
       var o = newElem('option');
@@ -325,8 +327,8 @@ function newFilterField(tag, func, options) {
   }));
   addEvent(elem, 'focusout', applyOn(elem, function(e) {
     if (e.value == '') {
-      e.value = 'Filter';
       e.className = 'off';
+      if (e.tagName!=='SELECT') e.value = 'Filter';
     }
   }));
   addEvent(elem, tag == 'select' ? 'change' : 'input',
