@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -30,6 +31,7 @@ import de.agilantis.website_validator.Website;
 
 public class LinkChecker extends CheckerAdapter {
 
+	private Pattern anchorExcludePattern = null;
     private final Map<Path, Set<String>> anchors = new HashMap<>();
     private final List<ExpectedAnchor> expectedAnchors = new ArrayList<>();
     private int checkedLinks = 0;
@@ -85,7 +87,7 @@ public class LinkChecker extends CheckerAdapter {
                     continue;
                 }
 
-                // option anchor
+                // optional anchor
                 if ("#".equals(attr)) continue;
                 final int anchorStart = attr.indexOf('#'); // fragment identifier
                 final int queryStart = attr.indexOf('?');
@@ -103,7 +105,10 @@ public class LinkChecker extends CheckerAdapter {
                 if (anchorStart >= 0) {
                     try {
                         final String anchor = URLDecoder.decode(attr.substring(anchorStart + 1), StandardCharsets.UTF_8.name());
-                        expectedAnchors.add(new ExpectedAnchor(linkType, target, attr, anchor, file));
+                        if (   anchorExcludePattern == null
+                        	|| !anchorExcludePattern.matcher(anchor).find()) {
+                        	expectedAnchors.add(new ExpectedAnchor(linkType, target, attr, anchor, file));
+                        }
                     } catch (UnsupportedEncodingException e) {
                         // ignore
                         e.printStackTrace();
@@ -132,8 +137,15 @@ public class LinkChecker extends CheckerAdapter {
     }
 
     @Override
+    public void configure(Map<String, String> arguments) {
+    	final String anchorExcludeRegex = arguments.get("anchorexcluderegex");
+    	if (anchorExcludeRegex != null) {
+    		anchorExcludePattern = Pattern.compile(anchorExcludeRegex);
+    	}
+    }
+
+    @Override
     public String getStatistics() {
-    	// TODO Auto-generated method stub
     	return checkedLinks + " links checked (" + skippedLinks + " links skipped)";
     }
 

@@ -11,6 +11,7 @@ package de.agilantis.website_validator;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.jsoup.nodes.Document;
 
@@ -19,6 +20,10 @@ public interface IChecker {
     void visitFile(Path path, Document doc, Website website, List<Issue> issues);
 
     List<Issue> getRemainingIssuesAfterVisitingAllFiles(Website website);
+
+    default void configure(Map<String, String> arguments) {
+    	// optional configuration arguments
+    }
 
     default String getStatistics() {
     	return "";

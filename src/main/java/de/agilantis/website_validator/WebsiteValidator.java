@@ -15,7 +15,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -33,10 +35,29 @@ public class WebsiteValidator {
             System.err.println("Specify the directory that should be validated.");
             return;
         }
-        final Path dir = Paths.get(args[0]);
+
+        // reading arguments: <input> [-<arg_name> <arg_value>]*
+        final Map<String, String> arguments = new HashMap<>();
+        String input = null;
+        String argName = null;
+        for (String argument : args) {
+        	if (argument.startsWith("-")) {
+        		argName = argument.substring(1).toLowerCase();
+        		continue;
+        	}
+        	if (argName != null) {
+        		arguments.put(argName, argument);
+        		argName = null;
+        		continue;
+        	}
+        	input = argument;
+        }
+
+        // validate
+        final Path dir = Paths.get(input);
         System.out.println("Validating " + dir);
         final Website website = Website.of(dir);
-        ValidationResult result = validate(website);
+        ValidationResult result = validate(website, arguments);
         List<Issue> issues = result.getIssues();
         System.out.println(  (issues.isEmpty() ? "no" : "" + issues.size())
         		           + " issues found"
@@ -47,31 +68,22 @@ public class WebsiteValidator {
         }
 
         // optional HTML report
-        boolean isHtmlReportArg = false;
-        boolean isHtmlReportBaseUrlArg = false;
-        String htmlReport = null;
-        String htmlReportBaseUrl = null;
-        for (String argument : args) {
-            if (isHtmlReportArg) {
-                isHtmlReportArg = false;
-                htmlReport = argument;
-            } else if (isHtmlReportBaseUrlArg) {
-                isHtmlReportBaseUrlArg = false;
-                htmlReportBaseUrl = argument;
-            }
-            isHtmlReportArg = "-htmlreport".equals(argument);
-            isHtmlReportBaseUrlArg = "-htmlreportbaseurl".equals(argument);
-        }
-        if (htmlReport != null) {
-        	HtmlReport.create(Paths.get(htmlReport), result, htmlReportBaseUrl, website);
+        if (arguments.containsKey("htmlreport")) {
+        	HtmlReport.create(Paths.get(arguments.get("htmlreport")),
+        			          result,
+        			          arguments.get("htmlreportbaseurl"),
+        			          website);
         }
     }
 
-    public static ValidationResult validate(Website website) {
-    	return validate(website, checkersFromClasses(DEFAULT_CHECKERS));
+    public static ValidationResult validate(Website website,
+    		                                Map<String, String> arguments) {
+    	return validate(website,
+    			        checkersFromClasses(DEFAULT_CHECKERS, arguments));
     }
 
-    public static ValidationResult validate(Website website, List<IChecker> checkers) {
+    public static ValidationResult validate(Website website,
+    		                                List<IChecker> checkers) {
         final List<Issue> issues = new ArrayList<>(website.getIssues());
         int numberOfHtmlFiles = 0;
         int numberOfOtherFiles = 0;
@@ -122,11 +134,14 @@ public class WebsiteValidator {
         return start < 0 ? "" : fileName.substring(start + 1);
     }
 
-    private static List<IChecker> checkersFromClasses(List<Class<? extends IChecker>> checkerClasses) {
+    private static List<IChecker> checkersFromClasses(List<Class<? extends IChecker>> checkerClasses,
+    		                                          Map<String, String> arguments) {
     	final List<IChecker> checkers = new ArrayList<>();
     	for (Class<? extends IChecker> checkerClass : checkerClasses) {
     		try {
-				checkers.add(checkerClass.newInstance());
+				final IChecker newChecker = checkerClass.newInstance();
+				newChecker.configure(arguments);
+				checkers.add(newChecker);
 			} catch (InstantiationException | IllegalAccessException e) {
 				e.printStackTrace();
 			}
